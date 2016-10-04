@@ -26,7 +26,7 @@ class NDamesProblemSolver {
         $chessboard = [];
         for ($x = 0; $x < $n; $x++) {
             for ($y = 0; $y < $n; $y++) {
-                $chessboard[$x][$y] = self::EMPTY_SQUARE;
+                $chessboard[$y][$x] = self::EMPTY_SQUARE;
             }
         }
 
@@ -34,19 +34,19 @@ class NDamesProblemSolver {
     }
 
     protected function placeDame($x, $y, $chessboard) {
-        $chessboard[$x][$y] = self::DAME;
+        $chessboard[$y][$x] = self::DAME;
 
         return $chessboard;
     }
 
-    public function tryToPlaceADame($x, $y, $chessboard, $damesPlaced = 0, $solutionsFound = 0) {
+    public function tryToPlaceADame($x, $y, $chessboard, $damesPlaced = [], $solutionsFound = 0) {
 
         $n = count($chessboard);
         if ($x >= $n || $y >= $n) return $solutionsFound; // we are out of board
 
-        if (false === $this->isThreatOnSquare($x, $y, $chessboard)) {
-            if ($n === $damesPlaced + 1) {
-                // if all dames would placed, increase solution count
+        if (false === $this->isThreatOnSquare($x, $y, $damesPlaced)) {
+            if ($n === count($damesPlaced) + 1) {
+                // if all dames would be placed, increase solution count
                 // and try not placing it here to see if we can come with another solution
                 return $this->tryToPlaceADame($x, $y + 1, $chessboard, $damesPlaced, $solutionsFound+1);
             }
@@ -57,57 +57,29 @@ class NDamesProblemSolver {
 
             // place it here and continue on next column
             $newChessboard = $this->placeDame($x, $y, $chessboard);
-            return $this->tryToPlaceADame($x + 1, 0, $newChessboard, $damesPlaced + 1, $solutionsFound);
+            $damesPlaced[$x] = $y;
+            return $this->tryToPlaceADame($x + 1, 0, $newChessboard, $damesPlaced, $solutionsFound);
         }
 
         // if dame can not be placed, try to place it into next row
         return $this->tryToPlaceADame($x, $y+1, $chessboard, $damesPlaced, $solutionsFound);
     }
 
-    public function isThreatOnSquare($x, $y, $chessboard) {
-        $n = count($chessboard);
+    public function isThreatOnSquare($x, $y, $damesPlaced) {
+        foreach ($damesPlaced as $dx => $dy) {
 
-        // check horizontal threat
-        for ($i = 0; $i < $n; $i++) {
-            if ($i === $x) continue; // no need to check threat on the tested square
-            if ($chessboard[$i][$y] === self::DAME) {
-                return true;
-
-            }
-        }
-
-        // check vertical threat
-        for ($i = 0; $i < $n; $i++) {
-            if ($i === $y) continue; // no need to check threat on the tested square
-            if ($chessboard[$x][$i] === self::DAME) {
+            // check column and row
+            if ($dx === $x || $dy === $y) {
                 return true;
             }
-        }
 
-        // check diagonal threat from top-left
-        for ($xx = $x - 1, $yy = $y - 1; $xx >= 0 && $yy >= 0; $xx--, $yy--) {
-            if ($chessboard[$xx][$yy] === self::DAME) {
+            // check right to left diagonal
+            if (($dx + $dy) === ($x + $y)) {
                 return true;
             }
-        }
 
-        // check diagonal threat from bottom-right
-        for ($xx = $x + 1, $yy = $y + 1; $xx < $n && $yy < $n; $xx++, $yy++) {
-            if ($chessboard[$xx][$yy] === self::DAME) {
-                return true;
-            }
-        }
-
-        // check diagonal threat from bottom-left
-        for ($xx = $x - 1, $yy = $y + 1; $xx >= 0 && $yy < $n; $xx--, $yy++) {
-            if ($chessboard[$xx][$yy] === self::DAME) {
-               return true;
-            }
-        }
-
-        // check diagonal threat from top-right
-        for ($xx = $x + 1, $yy = $y - 1; $xx < $n && $yy >= $n; $xx++, $yy--) {
-            if ($chessboard[$xx][$yy] === self::DAME) {
+            // check left to right diagonal
+            if (($dx - $dy) === ($x - $y)) {
                 return true;
             }
         }
@@ -120,7 +92,7 @@ class NDamesProblemSolver {
 
         $start = time();
         $chessboard = $this->initChessboard($n);
-        $solutions = $this->tryToPlaceADame(0, 0, $chessboard, 0);
+        $solutions = $this->tryToPlaceADame(0, 0, $chessboard);
         $duration = time() - $start;
 
         echo "\nSOLUTIONS FOUND: $solutions";
